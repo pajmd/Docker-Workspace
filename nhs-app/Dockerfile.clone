@@ -1,0 +1,47 @@
+# Dockerfile
+
+# Use an official Python runtime as a parent image
+FROM python:3.6-slim
+
+# build:
+# docker build -t --build-arg GIT_USER=pajmd --build-arg GIT_TOKEN=d14ef27731f6e862f0f63225ecf1d9cffa45cbdf --build-arg GIT_BRANCH=<commitid or ranc> --tag=nhs-server:v0.1 -f Dockerfile.clone .
+
+# checking out projects
+ARG GIT_USER
+ARG GIT_TOKEN
+ARG GIT_BRANCH
+ARG SW_VERSION
+RUN apt-get update
+RUN apt-get -y install git
+RUN git clone -n https://${GIT_USER}:${GIT_TOKEN}@github.com/pajmd/nhs-server.git && cd nhs-server && git checkout ${GIT_BRANCH}
+
+
+# Set the working directory to /app
+WORKDIR /app
+
+RUN echo $(ls -1 .)
+
+COPY nhs-server/ /app
+# CMD /app/entry.pl /<your_git>/<dir_you_want_to_checkout>/...
+
+# Copy the current directory contents into the container at /app
+# COPY python_workspace/PychramProjects/nhs-server /app
+# COPY js_workspace/VueProjects/nhs-ui/dist /app/nhs-ui
+
+# Install any needed packages specified in requirements.txt
+RUN pip install --trusted-host pypi.python.org -r requirements.txt
+
+# Make port 5000 available to the world outside this container
+EXPOSE 5000
+
+# Define environment variable
+ENV NAME World
+
+# need to extend PYHTONPATH
+ENV PYTHONPATH="$PYTHONPATH:/app"
+
+# NHS-UI built distribution
+ENV NHS_UI_DIST="nhs-ui"
+
+# Run app.py when the container launches
+CMD ["python", "app/run.py"]

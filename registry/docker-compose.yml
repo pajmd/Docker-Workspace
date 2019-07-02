@@ -1,0 +1,28 @@
+version: "3"
+# never worked
+services:
+  web:
+    environment:
+      - REGISTRY_HTTP_ADDR=0.0.0.0:443
+      - REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt
+      - REGISTRY_HTTP_TLS_KEY=/certs/domain.key 
+    extra_hosts:
+      - "ubuntu-desktop:192.168.1.48"
+    image: registry:2
+    volumes:
+      - /home/pjmd/docker_local_registry_certs:/certs
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 50M
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "443:443"
+    networks:
+      - webnet
+networks:
+  webnet:
+
