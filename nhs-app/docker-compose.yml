@@ -1,10 +1,11 @@
 version: "3"
+# docker stack deploy -c docker-compose.yml nhs-app-stack
 services:
   web:
     # replace username/repo:tag with your name and image details
     # image: nhs-server
     # Using my local registry
-    image: pjmd-ubuntu:5000/nhs-server-app:0.1
+    image: pjmd-ubuntu:5001/nhs-server-app:0.1
     deploy:
       replicas: 5
       resources:
@@ -15,6 +16,9 @@ services:
         condition: on-failure
     ports:
       - "4000:5000"
+    environment:
+      # nsh-server needs to know the db container host name in the overlay network. See: https://docs.docker.com/compose/networking/
+      - MONGO_HOST=db
     networks:
       - webnet
   visualizer:
@@ -29,14 +33,22 @@ services:
     networks:
       - webnet
   db:
+    # https://gist.github.com/wesleybliss/29d4cce863f5964a3eb73c42501d99e4
     image: mongo:4.0.4
+    # user: "${UID}:${GID}"
+    # need user entry to prevent owner/group from being changed on the host to 999/mongodb container's user id
+    user: "122:127"
     ports:
       - "27017-27019:27017-27019"
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/stdout
     volumes:
       - "/var/lib/mongodb:/data/db"
     deploy:
       placement:
         constraints: [node.role == manager]
+    command: --smallfiles 
     networks:
       - webnet
 networks:
