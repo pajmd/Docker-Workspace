@@ -86,6 +86,7 @@ networks:
     * docker container ls -q
     * docker stack rm getstartedlab: to take down the app
     * docker swarm leave --force: to take down the swarm
+    * docker service logs -f <serviceid> to see logs that are redirected to stderr/out
 
 #### Swarms
 ```
