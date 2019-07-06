@@ -11,7 +11,9 @@ services:
       resources:
         limits:
           cpus: "0.1"
-          memory: 50M
+          # increased mem bc journalctl -k | grep -i -e memory -e oom showed on the remote some kills
+          # see as well docker inspect <container ID>
+          memory: 500M
       restart_policy:
         condition: on-failure
     ports:
@@ -52,5 +54,6 @@ services:
     networks:
       - webnet
 networks:
+  # https://stackoverflow.com/questions/44647924/how-do-networking-and-load-balancer-work-in-docker-swarm-mode
   webnet:
 
