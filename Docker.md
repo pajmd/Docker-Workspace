@@ -19,6 +19,7 @@ $ sudo docker run hello-world
   * docker image ls
   * docker container ls --all (--all shows info even if conatiner not running)
   * docker container --help
+  * docker daemon log sudo journalctl -fu docker.service
 
 ### Containers
 #### Dockerfile
@@ -105,6 +106,11 @@ For using TLS SEE: https://docs.docker.com/registry/insecure/
 
 Use a command like the following to start the registry container:
 Worked fine for host pjmd-ubuntu and a /etc/docker/daemon.json (insecure). Self assigned Cert didn't do it.
+Don't forget to restart docker on all hosts:
+```
+sudo service docker restart
+```
+
 ```
 $ docker run -d -p 5000:5000 --restart=always --name registry registry:2
 ```
