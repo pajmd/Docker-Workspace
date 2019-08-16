@@ -1,0 +1,139 @@
+# a docker-compose.yml to start a simple cluster with three ZooKeeper nodes and three Solr nodes.
+#
+# To use:
+#
+# mkdir mycluster
+# cd mycluster
+# curl --output docker-compose.yml https://raw.githubusercontent.com/pajmd/Docker-Workspace/tree/master/nhs-app/docker-compose.yml
+# docker-compose up
+#
+
+version: '3.7'
+services:
+  solr1:
+    container_name: solr1
+    image: solr:7
+    ports:
+     - "8981:8983"
+    environment:
+      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf
+    networks:
+      - solr
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+      - upconfig
+
+  solr2:
+    image: solr:7
+    container_name: solr2
+    ports:
+     - "8982:8983"
+    volumes:
+      - /home/pjmd/tmp/test_makuk66_solr/configs/mongoConnectorConfig/conf:/opt/solr/server/solr/configsets/my_solr_conf
+    environment:
+      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf
+    networks:
+      - solr
+    environment:
+      - VERBOSE=yes
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+      - upconfig
+
+  solr3:
+    image: solr:7
+    container_name: solr3
+    ports:
+     - "8983:8983"
+    environment:
+      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf
+    ports:
+      - 8983:8983
+    networks:
+      - solr
+
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+      - upconfig
+
+  upconfig:
+    image: "solr:7"
+    volumes:
+      - /home/pjmd/tmp/test_makuk66_solr/configs/mongoConnectorConfig/conf:/opt/solr/server/solr/configsets/my_solr_conf
+    networks:
+      - solr
+    command: 
+      - bash 
+      - "-c"
+      - "set -x; export; bin/solr zk mkroot /my_solr_conf -z zoo1:2181,zoo2:2181,zoo3:2181 ; date -u ;
+    server/scripts/cloud-scripts/zkcli.sh -z zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf -cmd upconfig -confname mongoConnectorBaseConfig -confdir /opt/solr/server/solr/configsets/my_solr_conf; date -u"
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+
+  createcollection:
+    image: "solr:7"
+    networks:
+      - solr
+    volumes:
+      - /home/pjmd/tmp/test_makuk66_solr/mongofields:/opt/solr/mongofields
+    command: 
+      - bash 
+      - "-c"
+      - 'set -x; date -u; wait-for-solr.sh --solr-url http://solr1:8983; date -u;
+    curl "http://solr1:8983/solr/admin/configs?action=CREATE&name=mongoConnectorConfig&baseConfigSet=mongoConnectorBaseConfig&configSetProp.immutable=false&wt=json&omitHeader=true"; date -u; 
+    curl "http://solr1:8983/solr/admin/collections?action=CREATE&name=nhsCollection&collection.configName=mongoConnectorConfig&numShards=2&replicationFactor=2&maxShardsPerNode=2&wt=json"; date -u;
+    curl -X POST -H "Content-type:application/json" --data-binary @/opt/solr/mongofields/fields.json  http://solr1:8983/solr/nhsCollection/schema'
+    depends_on:
+      - solr1
+      - solr2
+      - solr3
+
+  zoo1:
+    image: zookeeper:3.4
+    container_name: zoo1
+    restart: always
+    hostname: zoo1
+    ports:
+      - 2181:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
+    networks:
+      - solr
+
+  zoo2:
+    image: zookeeper:3.4
+    container_name: zoo2
+    restart: always
+    hostname: zoo2
+    ports:
+      - 2182:2181
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
+    networks:
+      - solr
+
+  zoo3:
+    image: zookeeper:3.4
+    container_name: zoo3
+    restart: always
+    hostname: zoo3
+    ports:
+      - 2183:2181
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
+    networks:
+      - solr
+
+networks:
+  solr:
