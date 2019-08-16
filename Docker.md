@@ -38,22 +38,33 @@ $ sudo docker run hello-world
   ```
 
 #### Running containers
+  * running a container in interactive mode, i.e. get prompt from running container
+  ```
+    docker run -d -p 27017-27019:27017-27019 --name mongodb mongo:4.0.4
+    docker exec -it mongodb bash
+
+  ```
+
   * docker run -d -p 4000:80 friendlyhello :  -d runs container as a deamon. Internal to the container port 80 is expoted as 4000 to the machine
 
   * docker container ls : ps equivalent
   * docker container stop <container id>
   * debug a build:
-```
-   ---> 0fe1404b0ffa
-Step 10/16 : COPY nhs-server/ /app
-COPY failed: stat /var/lib/docker/tmp/docker-builder436911997/nhs-server: no such file or directory
-```
+  ```
+     ---> 0fe1404b0ffa
+  Step 10/16 : COPY nhs-server/ /app
+  COPY failed: stat /var/lib/docker/tmp/docker-builder436911997/nhs-server: no such file or directory
+  ```
+  * to run a container in interactive mode and remove it when command is done
+  ```
 	docker run --rm -it 0fe1404b0ffa sh
+  ```
 
   *  remove all stopped containers, all dangling images, and all unused networks:
-```
-docker system prune
-```
+  ```
+  docker system prune
+  ```
+  
 #### Service
   * Services are really just “containers in production.” It codifies the way that image runs—what ports it should use, how many replicas of the container should run so the service has the capacity it needs, and so on. 
   * Spec is defined in a docker-compose.yml file:
@@ -141,3 +152,31 @@ $ docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
 ##### stack command:
   * https://pauledenburg.com/deploy-docker-stack/
+
+### DockerCompose
+
+docker-compose is another script that makes it easy to test/run a docker-compose.yml file in a non swarm mode
+
+* to start the set of containner (cd where the docker-compose.yml is)
+```
+docker-compose up -d
+```
+* to stop the containers
+```
+docker-compose down
+```
+* to less the logs
+```
+docker-compose logs --no-color | less
+```
+* hook in a running container
+```
+docker exec -it zoo1 bash (where zoo1 in the name of the container)
+```
+
+
+### To read
+
+Life cycle of a container and more
+https://medium.com/devopsion/life-and-death-of-a-container-146dfc62f808
+
