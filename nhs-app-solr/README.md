@@ -23,3 +23,8 @@ In this version of docker compose we added 2 services:
 
 Along with this docker-compose file, this folder contains the base config set and the mongodb fields to add the collection schema
 
+## Commands
+* to run it ( not as in a swarm): docker-compose up -d 
+* to stop it: docker-compose down
+* to check the logs: docker-compose logs --no-color | less
+* to run in interactive mode docker exec -it zoo1 bash
