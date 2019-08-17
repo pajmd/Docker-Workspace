@@ -27,9 +27,11 @@ $ sudo docker run hello-world
   * you need to map ports to the outside world, and be specific about what files you want to “copy in” to that environment.
 
   * To build image named using the --tag in your machine’s local Docker image registry: 
-    ```
+
+  ```
    docker build --tag=friendlyhello .
-    ```
+  ```
+  
   * docker image ls
   * to version the TAG: --tag=friendlyhello:v0.0.1
   * Run the app, mapping your machine’s port 4000 to the container’s published port 80 using -p
