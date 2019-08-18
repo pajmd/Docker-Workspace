@@ -35,8 +35,6 @@ services:
     container_name: solr2
     ports:
      - "8982:8983"
-    volumes:
-      - /home/pjmd/tmp/test_makuk66_solr/configs/mongoConnectorConfig/conf:/opt/solr/server/solr/configsets/my_solr_conf
     environment:
       - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf
     networks:
