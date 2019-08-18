@@ -7,6 +7,11 @@
 # curl --output docker-compose.yml https://raw.githubusercontent.com/pajmd/Docker-Workspace/tree/master/nhs-app/docker-compose.yml
 # docker-compose up
 #
+# See https://github.com/docker-solr/docker-solr/issues/139 to find out how one could run a script after solr started.
+# Below the approach is slightly different, two containers are run to do one, the pre-init (upconfig) and one for the post init (createcollection)
+#
+# compose file based on https://github.com/docker-solr/docker-solr-examples/blob/master/docker-compose/docker-compose.yml
+# 
 
 version: '3.7'
 services:
@@ -65,7 +70,7 @@ services:
   upconfig:
     image: "solr:7"
     volumes:
-      - /home/pjmd/tmp/test_makuk66_solr/configs/mongoConnectorConfig/conf:/opt/solr/server/solr/configsets/my_solr_conf
+      - ./solr_config/configs/mongoConnectorConfig/conf:/opt/solr/server/solr/configsets/my_solr_conf
     networks:
       - solr
     command: 
@@ -83,7 +88,7 @@ services:
     networks:
       - solr
     volumes:
-      - /home/pjmd/tmp/test_makuk66_solr/mongofields:/opt/solr/mongofields
+      - ./mongofields:/opt/solr/mongofields
     command: 
       - bash 
       - "-c"
