@@ -5,7 +5,7 @@ services:
     # replace username/repo:tag with your name and image details
     # image: nhs-server
     # Using my local registry
-    image: pjmd-ubuntu:5001/nhs-server-app:0.1
+    image: pjmd-ubuntu:5001/nhs-server-app:v0.0.2
     deploy:
       replicas: 5
       resources:
@@ -17,7 +17,7 @@ services:
       restart_policy:
         condition: on-failure
     ports:
-      - "4000:5000"
+      - "8000:8000"
     environment:
       # nsh-server needs to know the db container host name in the overlay network. See: https://docs.docker.com/compose/networking/
       - MONGO_HOST=db
@@ -47,6 +47,7 @@ services:
       - MONGO_LOG_DIR=/dev/stdout
     volumes:
       - "/var/lib/mongodb:/data/db"
+    # need to add replication for MongoConnector: edit /etc/mongod.conf
     deploy:
       placement:
         constraints: [node.role == manager]
