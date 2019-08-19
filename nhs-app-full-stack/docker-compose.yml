@@ -5,6 +5,7 @@ services:
     # replace username/repo:tag with your name and image details
     # image: nhs-server
     # Using my local registry
+    container_name: nhs-server
     image: pjmd-ubuntu:5001/nhs-server-app:v0.0.3
     deploy:
       replicas: 5
@@ -25,6 +26,7 @@ services:
     networks:
       - webnet
   visualizer:
+    container_name: visualizer
     image: dockersamples/visualizer:stable
     ports:
       - "8080:8080"
@@ -35,7 +37,10 @@ services:
         constraints: [node.role == manager]
     networks:
       - webnet
-  db:
+
+  # Testing in a non sharded cluster environment: Standalone with replica set
+  mongo_db:
+    container_name: mongo_db
     # https://gist.github.com/wesleybliss/29d4cce863f5964a3eb73c42501d99e4
     image: mongo:4.0.4
     # user: "${UID}:${GID}"
@@ -52,11 +57,31 @@ services:
     deploy:
       placement:
         constraints: [node.role == manager]
-    command: --smallfiles 
+    command: --smallfiles --replSet nhsReplicaName
     networks:
       - webnet
 
-  # the mounted solr_cluster_data must be chown -R 8389:8389 *
+  dbinit:
+    container_name: dbinit
+    # https://gist.github.com/wesleybliss/29d4cce863f5964a3eb73c42501d99e4
+    image: mongo:4.0.4
+    # user: "${UID}:${GID}"
+    # need user entry to prevent owner/group from being changed on the host to 999/mongodb container's user id
+    user: "122:127"
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/stdout
+    volumes:
+      - ${PWD}/mongo_script/initiate_replica_set.sh:/usr/local/bin/initiate_replica_set.sh
+    # need to add replication for MongoConnector: edit /etc/mongod.conf
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    entrypoint: /usr/local/bin/initiate_replica_set.sh
+    networks:
+      - webnet
+
+  # the mounted volume solr_cluster_data must be chown -R 8389:8389 *
   solr1:
     container_name: solr1
     image: solr:7
@@ -114,6 +139,7 @@ services:
       - upconfig
 
   upconfig:
+    container_name: upconfig
     image: "solr:7"
     volumes:
       - ./solr_config/configs/mongoConnectorConfig/conf:/opt/solr/server/solr/configsets/my_solr_conf
@@ -130,6 +156,7 @@ services:
       - zoo3
 
   createcollection:
+    container_name: createcollection
     image: "solr:7"
     networks:
       - webnet
