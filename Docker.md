@@ -180,5 +180,8 @@ docker exec -it zoo1 bash (where zoo1 in the name of the container)
 ### To read
 
 Life cycle of a container and more
-https://medium.com/devopsion/life-and-death-of-a-container-146dfc62f808
+https://medium.com/devopsion/life-and-death-of-a-container-146dfc62f808  
+
+Container data persist by default until the container is finally destroyed with “docker rm.” 
+The command “docker export” lets you save a container’s filesystem as a tar archive.
 
