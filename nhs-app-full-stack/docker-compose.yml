@@ -89,8 +89,14 @@ services:
      - "8981:8983"
     environment:
       - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf
+    # Either solr1 or solr1/solr.xml can be mounted. solr1/solr.xml makes it either to restart the app
+    # after a "down" (that removes containers) as opposed to a stop since all the indexes get wiped out.
+    # Mounting solr1 makes it esaier to inspect or modify the data in the Docker host when the container is not running.
+    # In either case solr_cluster_data must be chown -R 8389:8389 *
+    # See https://github.com/docker-solr/docker-solr/blob/master/Docker-FAQ.md
+    # After it is stopped the contaier filesystem can be exported with: docker export -o container-data.tar solrrrr111
     volumes:
-      - "./solr_cluster_data/solr1:/opt/solr/server/solr"
+      - "${PWD}/solr_cluster_data/solr1/solr.xml:/opt/solr/server/solr/solr.xml"
     networks:
       - webnet
     depends_on:
@@ -111,7 +117,7 @@ services:
     environment:
       - VERBOSE=yes
     volumes:
-      - "./solr_cluster_data/solr2:/opt/solr/server/solr"
+      - "${PWD}/solr_cluster_data/solr2/solr.xml:/opt/solr/server/solr/solr.xml"
     depends_on:
       - zoo1
       - zoo2
@@ -126,7 +132,7 @@ services:
     environment:
       - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf
     volumes:
-      - "./solr_cluster_data/solr3:/opt/solr/server/solr"
+      - "${PWD}/solr_cluster_data/solr3/solr.xml:/opt/solr/server/solr/solr.xml"
     ports:
       - 8983:8983
     networks:
