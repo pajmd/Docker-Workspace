@@ -7,6 +7,8 @@
 
 FROM scratch
 
+# First download https://partner-images.canonical.com/core/bionic/current/ubuntu-bionic-core-cloudimg-amd64-root.tar.gz
+# to your build folder
 ADD ubuntu-bionic-core-cloudimg-amd64-root.tar.gz /
 
 # verify that the APT lists files do not exist
