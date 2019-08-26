@@ -1,0 +1,9 @@
+{
+  "responseHeader":{
+    "zkConnected":true,
+    "status":0,
+    "QTime":8,
+    "params":{
+      "q":"*:*"}},
+  "response":{"numFound":0,"start":0,"maxScore":0.0,"docs":[]
+  }}
