@@ -25,4 +25,4 @@ check_mongod_up
 
 echo "initiate replica set"
 # mongo "mongodb://mongodb0.example.com:27017"
-/usr/bin/mongo "mongodb://mongo_db:27017" --eval "rs.initiate()"
+/usr/bin/mongo "mongodb://mongo_db:27017" --eval "rs.initiate(); rs.add('mongo_db'); db=db.getSiblingDB('nhsdb'); db.createCollection('nhsCollection'; db.createCollection('nhsUsers')"
