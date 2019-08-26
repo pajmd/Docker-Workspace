@@ -52,7 +52,8 @@ services:
       - MONGO_DATA_DIR=/data/db
       - MONGO_LOG_DIR=/dev/stdout
     volumes:
-      - "/var/lib/mongodb:/data/db"
+      # - "/var/lib/mongodb:/data/db"
+      - "/home/pjmd/tmp/fullstack/data/db:/data/db"
     # need to add replication for MongoConnector: edit /etc/mongod.conf
     deploy:
       placement:
@@ -218,6 +219,17 @@ services:
       ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
     networks:
       - webnet
+
+  mongoconnector:
+    image: nhs-mongo-connector
+    container_name: mongoconnector
+    networks:
+      - webnet
+    # entrypoint: /bin/bash
+    command: ["mongo_db", "solr1"]
+    depends_on:
+      - mongo_db
+      - solr1
 
 networks:
   webnet:
