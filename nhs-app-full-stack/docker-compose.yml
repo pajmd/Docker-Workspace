@@ -21,7 +21,7 @@ services:
       - "8000:8000"
     environment:
       # nsh-server needs to know the db container host name in the overlay network. See: https://docs.docker.com/compose/networking/
-      - MONGO_HOST=db
+      - MONGO_HOST=mongo_db
       - SOLR_HOST=solr1
     networks:
       - webnet
@@ -219,6 +219,14 @@ services:
       ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
     networks:
       - webnet
+
+  scrapynhs:
+    image: scrapy_nhs
+    container_name: scrapy_nhs
+    networks:
+      - webnet
+    depends_on:
+      - mongo_db    
 
   mongoconnector:
     image: nhs-mongo-connector
