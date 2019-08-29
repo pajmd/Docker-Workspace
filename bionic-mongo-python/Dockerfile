@@ -99,6 +99,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # install a bunch of new packages including gcc, g++ and make.
 RUN apt-get update && apt-get install -y gcc 
 
+# SSL libs: https://websiteforstudents.com/manually-install-the-latest-openssl-toolkit-on-ubuntu-16-04-18-04-lts
+RUN set -ex; mkdir -p /sslbuild \
+	&& cd /sslbuild \
+	&& wget -qO OpenSSL_1_1_1c.tar.gz "https://github.com/openssl/openssl/archive/OpenSSL_1_1_1c.tar.gz" \
+	&& tar xvf OpenSSL_1_1_1c.tar.gz \
+	&& cd openssl-OpenSSL_1_1_1c \
+	&& ./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' \
+	&& make \
+	&& make install
+
+# Python needs sqlite3 to be install before it is compiled
+RUN apt-get update && apt-get install -y libsqlite3-dev
+
 ENV GPG_KEY 0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D
 ENV PYTHON_VERSION 3.6.9
 
@@ -127,43 +140,43 @@ RUN set -ex \
 		--with-system-expat \
 		--with-system-ffi \
 		--without-ensurepip \
-	&& make -j "$(nproc)" \
+	&& make -j 8 \
 # setting PROFILE_TASK makes "--enable-optimizations" reasonable: https://bugs.python.org/issue36044 / https://github.com/docker-library/python/issues/160#issuecomment-509426916
-		PROFILE_TASK='-m test.regrtest --pgo \
-			test_array \
-			test_base64 \
-			test_binascii \
-			test_binhex \
-			test_binop \
-			test_bytes \
-			test_c_locale_coercion \
-			test_class \
-			test_cmath \
-			test_codecs \
-			test_compile \
-			test_complex \
-			test_csv \
-			test_decimal \
-			test_dict \
-			test_float \
-			test_fstring \
-			test_hashlib \
-			test_io \
-			test_iter \
-			test_json \
-			test_long \
-			test_math \
-			test_memoryview \
-			test_pickle \
-			test_re \
-			test_set \
-			test_slice \
-			test_struct \
-			test_threading \
-			test_time \
-			test_traceback \
-			test_unicode \
-		' \
+#		PROFILE_TASK='-m test.regrtest --pgo \
+#			test_array \
+#			test_base64 \
+#			test_binascii \
+#			test_binhex \
+#			test_binop \
+#			test_bytes \
+#			test_c_locale_coercion \
+#			test_class \
+#			test_cmath \
+#			test_codecs \
+#			test_compile \
+#			test_complex \
+#			test_csv \
+#			test_decimal \
+#			test_dict \
+#			test_float \
+#			test_fstring \
+#			test_hashlib \
+#			test_io \
+#			test_iter \
+#			test_json \
+#			test_long \
+#			test_math \
+#			test_memoryview \
+#			test_pickle \
+#			test_re \
+#			test_set \
+#			test_slice \
+#			test_struct \
+#			test_threading \
+#			test_time \
+#			test_traceback \
+#			test_unicode \
+#		' \
 	&& make install \
 	&& ldconfig \
 	\
@@ -185,9 +198,35 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 
-RUN apt-get -y install python3-pip; echo $(pip3 --version); echo $(which pip3)
+# RUN apt-get -y install python3-pip; echo $(pip3 --version); echo $(which pip3)
+# RUN pip3 install --upgrade pip
 
-RUN pip3 install --upgrade pip
+# if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
+ENV PYTHON_PIP_VERSION 19.2.2
+# https://github.com/pypa/get-pip
+ENV PYTHON_GET_PIP_URL https://github.com/pypa/get-pip/raw/0c72a3b4ece313faccb446a96c84770ccedc5ec5/get-pip.py
+ENV PYTHON_GET_PIP_SHA256 201edc6df416da971e64cc94992d2dd24bc328bada7444f0c4f2031ae31e8dad
+
+RUN set -ex; \
+	\
+	wget --no-check-certificate -O get-pip.py "$PYTHON_GET_PIP_URL"; \
+	echo "$PYTHON_GET_PIP_SHA256 *get-pip.py" | sha256sum --check --strict -; \
+	\
+	python get-pip.py \
+		--disable-pip-version-check \
+		--no-cache-dir \
+		"pip==$PYTHON_PIP_VERSION" \
+	; \
+	pip --version; \
+	\
+	find /usr/local -depth \
+		\( \
+			\( -type d -a \( -name test -o -name tests \) \) \
+			-o \
+			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
+		\) -exec rm -rf '{}' +; \
+	rm -f get-pip.py
+
 
 RUN echo "pip3 version "$(pip3 --version); echo "\npip3 location "$(which pip3); echo "\npip version "$(pip --version); echo "\npip location "$(which pip)
 
