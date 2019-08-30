@@ -47,7 +47,9 @@ check_solr_up() {
 			exit 1
 		fi
 		echo "==========================================="
-		res=`wget -o /dev/null -O - $solr_url/solr/nhsCollection/select?q=*%3A*&spellcheck=on | grep response`
+		# wget -o /dev/null -O - "http://solr1:8983/solr/nhsCollection/admin/luke/?show=schema&wt=json" | grep "stuff"
+		# res=`wget -o /dev/null -O - "$solr_url/solr/nhsCollection/select?q=*%3A*&spellcheck=on" | grep response`
+		res=`wget -o /dev/null -O - "$solr_url/solr/nhsCollection/admin/luke/?show=schema&wt=json" | grep "VMPP Snomed Code"`
 		# res=`wget -q -O - "$solr_url" | grep -i solr`
 		echo "wget result: $res"
 		if [ -z "$res" ] ; then
