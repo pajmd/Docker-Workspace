@@ -6,7 +6,7 @@ services:
     # image: nhs-server
     # Using my local registry
     container_name: nhs-server
-    image: pjmd-ubuntu:5001/nhs-server-app:v0.0.3
+    image: pjmd-ubuntu:5001/nhs-server-app:v0.0.4
     deploy:
       replicas: 5
       resources:
