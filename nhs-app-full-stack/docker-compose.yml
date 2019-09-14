@@ -41,6 +41,7 @@ services:
   # Testing in a non sharded cluster environment: Standalone with replica set
   mongo_db:
     container_name: mongo_db
+    hostname: mongo_db
     # https://gist.github.com/wesleybliss/29d4cce863f5964a3eb73c42501d99e4
     image: mongo:4.0.4
     # user: "${UID}:${GID}"
@@ -54,11 +55,13 @@ services:
     volumes:
       # - "/var/lib/mongodb:/data/db"
       - "/home/pjmd/tmp/fullstack/data/db:/data/db"
+      - ${PWD}/mongo_config/nhs_mongod.conf:/etc/mongo/mongod.conf
     # need to add replication for MongoConnector: edit /etc/mongod.conf
     deploy:
       placement:
         constraints: [node.role == manager]
-    command: --smallfiles --replSet nhsReplicaName
+    command: --smallfiles --config /etc/mongo/mongod.conf
+    # command: --smallfiles --replSet nhsReplicaName
     networks:
       - webnet
 
@@ -220,13 +223,13 @@ services:
     networks:
       - webnet
 
-  scrapynhs:
-    image: scrapy_nhs
-    container_name: scrapy_nhs
-    networks:
-      - webnet
-    depends_on:
-      - mongo_db    
+   scrapynhs:
+     image: pjmd-ubuntu:5001/scrapy-nhs:v0.0.1
+     container_name: scrapy_nhs
+     networks:
+       - webnet
+     depends_on:
+       - mongo_db    
 
   mongoconnector:
     image: nhs-mongo-connector
