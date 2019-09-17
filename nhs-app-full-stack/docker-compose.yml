@@ -223,13 +223,13 @@ services:
     networks:
       - webnet
 
-   scrapynhs:
-     image: pjmd-ubuntu:5001/scrapy-nhs:v0.0.1
-     container_name: scrapy_nhs
-     networks:
-       - webnet
-     depends_on:
-       - mongo_db    
+  scrapynhs:
+    image: pjmd-ubuntu:5001/scrapy-nhs:v0.0.1
+    container_name: scrapy_nhs
+    networks:
+      - webnet
+    depends_on:
+      - mongo_db    
 
   mongoconnector:
     image: nhs-mongo-connector
