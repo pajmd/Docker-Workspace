@@ -21,7 +21,13 @@ elif [[ $1 = "start" ]]; then
 		docker-compose up -d
 	elif [[ $2 =~ ^-c(lean)?$ ]]; then
 		echo "start clean"
-		sudo -u mongodb rm -rf $HOME/tmp/fullstack/data/db/* && docker-compose up -d
+		if [[ -d $HOME/tmp/fullstack/data/db ]]; then
+			sudo -u mongodb rm -rf $HOME/tmp/fullstack/data/db/* && docker-compose up -d
+		else 
+			mkdir -p $HOME/tmp/fullstack/data/db
+			sudo chown mongodb:mongodb $HOME/tmp/fullstack/data/db
+			docker-compose up -d
+		fi
 	else
 		echo "$2 option unknown"
 		usage
