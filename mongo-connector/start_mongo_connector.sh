@@ -74,4 +74,4 @@ check_solr_up "http://$SOLR_HOST:8983"
 check_mongod_up $DB_HOST
 
 echo "Connecting mongo-connector --stdout --unique-key=id --namespace-set=nhsdb.nhsCollection -m $DB_HOST:27017 -t http://$SOLR_HOST:8983/solr/nhsCollection -d solr_doc_manager -v --auto-commit-interval=2"
-mongo-connector --stdout --unique-key=id --namespace-set=nhsdb.nhsCollection -m $DB_HOST:27017 -t http://$SOLR_HOST:8983/solr/nhsCollection -d solr_doc_manager -v --auto-commit-interval=2
+mongo-connector --continue-on-error --stdout --unique-key=id --namespace-set=nhsdb.nhsCollection -m $DB_HOST:27017 -t http://$SOLR_HOST:8983/solr/nhsCollection -d solr_doc_manager -v --auto-commit-interval=2
