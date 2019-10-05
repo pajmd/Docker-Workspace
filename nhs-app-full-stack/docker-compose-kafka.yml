@@ -1,0 +1,278 @@
+version: "3"
+# docker stack deploy -c docker-compose.yml nhs-app-stack
+services:
+  web:
+    # replace username/repo:tag with your name and image details
+    # image: nhs-server
+    # Using my local registry
+    container_name: nhs-server
+    image: pjmd-ubuntu:5001/nhs-server-app:v0.0.4
+    deploy:
+      replicas: 5
+      resources:
+        limits:
+          cpus: "0.1"
+          # increased mem bc journalctl -k | grep -i -e memory -e oom showed on the remote some kills
+          # see as well docker inspect <container ID>
+          memory: 500M
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "8000:8000"
+    environment:
+      # nsh-server needs to know the db container host name in the overlay network. See: https://docs.docker.com/compose/networking/
+      - MONGO_HOST=mongo_db
+      - SOLR_HOST=solr1
+    networks:
+      - webnet
+  visualizer:
+    container_name: visualizer
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - webnet
+
+  # Testing in a non sharded cluster environment: Standalone with replica set
+  mongo_db:
+    container_name: mongo_db
+    hostname: mongo_db
+    # https://gist.github.com/wesleybliss/29d4cce863f5964a3eb73c42501d99e4
+    image: mongo:4.0.4
+    # user: "${UID}:${GID}"
+    # need user entry to prevent owner/group from being changed on the host to 999/mongodb container's user id
+    user: "122:127"
+    ports:
+      - "27017-27019:27017-27019"
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/stdout
+    volumes:
+      # - "/var/lib/mongodb:/data/db"
+      - "/home/pjmd/tmp/fullstack/data/db:/data/db"
+      - ${PWD}/mongo_config/nhs_mongod.conf:/etc/mongo/mongod.conf
+    # need to add replication for MongoConnector: edit /etc/mongod.conf
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    command: --smallfiles --config /etc/mongo/mongod.conf
+    # command: --smallfiles --replSet nhsReplicaName
+    networks:
+      - webnet
+
+  dbinit:
+    container_name: dbinit
+    # https://gist.github.com/wesleybliss/29d4cce863f5964a3eb73c42501d99e4
+    image: mongo:4.0.4
+    # user: "${UID}:${GID}"
+    # need user entry to prevent owner/group from being changed on the host to 999/mongodb container's user id
+    user: "122:127"
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/stdout
+    volumes:
+      - ${PWD}/mongo_script/initiate_replica_set.sh:/usr/local/bin/initiate_replica_set.sh
+    # need to add replication for MongoConnector: edit /etc/mongod.conf
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    entrypoint: /usr/local/bin/initiate_replica_set.sh
+    networks:
+      - webnet
+
+  # the mounted volume solr_cluster_data must be chown -R 8389:8389 *
+  solr1:
+    container_name: solr1
+    image: solr:7
+    ports:
+     - "8981:8983"
+    environment:
+      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf
+    # Either solr1 or solr1/solr.xml can be mounted. solr1/solr.xml makes it either to restart the app
+    # after a "down" (that removes containers) as opposed to a stop since all the indexes get wiped out.
+    # Mounting solr1 makes it esaier to inspect or modify the data in the Docker host when the container is not running.
+    # In either case solr_cluster_data must be chown -R 8389:8389 *
+    # See https://github.com/docker-solr/docker-solr/blob/master/Docker-FAQ.md
+    # After it is stopped the contaier filesystem can be exported with: docker export -o container-data.tar solrrrr111
+    volumes:
+      - "${PWD}/solr_cluster_data/solr1/solr.xml:/opt/solr/server/solr/solr.xml"
+    networks:
+      - webnet
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+      - upconfig
+
+  solr2:
+    image: solr:7
+    container_name: solr2
+    ports:
+     - "8982:8983"
+    environment:
+      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf
+    networks:
+      - webnet
+    environment:
+      - VERBOSE=yes
+    volumes:
+      - "${PWD}/solr_cluster_data/solr2/solr.xml:/opt/solr/server/solr/solr.xml"
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+      - upconfig
+
+  solr3:
+    image: solr:7
+    container_name: solr3
+    ports:
+     - "8983:8983"
+    environment:
+      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf
+    volumes:
+      - "${PWD}/solr_cluster_data/solr3/solr.xml:/opt/solr/server/solr/solr.xml"
+    ports:
+      - 8983:8983
+    networks:
+      - webnet
+
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+      - upconfig
+
+  upconfig:
+    container_name: upconfig
+    image: "solr:7"
+    volumes:
+      - ./solr_config/configs/mongoConnectorConfig/conf:/opt/solr/server/solr/configsets/my_solr_conf
+    networks:
+      - webnet
+    command: 
+      - bash 
+      - "-c"
+      - "set -x; export; bin/solr zk mkroot /my_solr_conf -z zoo1:2181,zoo2:2181,zoo3:2181 ; date -u ;
+    server/scripts/cloud-scripts/zkcli.sh -z zoo1:2181,zoo2:2181,zoo3:2181/my_solr_conf -cmd upconfig -confname mongoConnectorBaseConfig -confdir /opt/solr/server/solr/configsets/my_solr_conf; date -u"
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+
+  createcollection:
+    container_name: createcollection
+    image: "solr:7"
+    networks:
+      - webnet
+    volumes:
+      - ./solr_mongo_fields:/opt/solr/mongofields
+    command: 
+      - bash 
+      - "-c"
+      - 'set -x; date -u; wait-for-solr.sh --solr-url http://solr1:8983; date -u;
+    curl "http://solr1:8983/solr/admin/configs?action=CREATE&name=mongoConnectorConfig&baseConfigSet=mongoConnectorBaseConfig&configSetProp.immutable=false&wt=json&omitHeader=true"; date -u; 
+    curl "http://solr1:8983/solr/admin/collections?action=CREATE&name=nhsCollection&collection.configName=mongoConnectorConfig&numShards=2&replicationFactor=2&maxShardsPerNode=2&wt=json"; date -u;
+    curl -X POST -H "Content-type:application/json" --data-binary @/opt/solr/mongofields/fields.json  http://solr1:8983/solr/nhsCollection/schema'
+    depends_on:
+      - solr1
+      - solr2
+      - solr3
+
+  zoo1:
+    image: zookeeper:3.4
+    container_name: zoo1
+    restart: always
+    hostname: zoo1
+    ports:
+      - 2184:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
+    networks:
+      - webnet
+
+  zoo2:
+    image: zookeeper:3.4
+    container_name: zoo2
+    restart: always
+    hostname: zoo2
+    ports:
+      - 2185:2181
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
+    networks:
+      - webnet
+
+  zoo3:
+    image: zookeeper:3.4
+    container_name: zoo3
+    restart: always
+    hostname: zoo3
+    ports:
+      - 2186:2181
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
+    networks:
+      - webnet
+
+# To test and send the one test file:
+# docker run -it --rm --network nhsappfullstack_webnet -e FILES_STORE=/app/nhs_test_files -e KAFKA_HOST=kafka --entrypoint bash  -t pjmd-ubuntu:5001/scrapy-nhs:v0.0.3
+# docker run --rm -it --network nhsappfullstack_webnet -e KAFKA_ZOOKEEPER_CONNECT=zoo1:2181 -e KAFKA_LISTENERS=PLAINTEXT://kafka:9092 -t wurstmeister/kafka:latest
+  scrapynhs:
+    image: pjmd-ubuntu:5001/scrapy-nhs:latest
+    container_name: scrapy_nhs
+    networks:
+      - webnet
+    depends_on:
+      - kafka    
+# next entries for testing only
+    environment:
+      FILES_STORE: /app/nhs_test_files
+    entrypoint: /app/docker_send_test_files.sh
+
+  kafka:
+    image: wurstmeister/kafka:latest
+    container_name: kafka
+    ports:
+      - 9093:9092
+    depends_on:
+      - zoo1
+    networks:
+      - webnet
+    environment:
+      # KAFKA_ADVERTISED_HOST_NAME: 192.168.99.100
+      KAFKA_ZOOKEEPER_CONNECT: zoo1:2181
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+
+  piper_mongo:
+    image: pjmd-ubuntu:5001/nhs_piper:latest
+    container_name: piper_mongo
+    networks:
+      - webnet
+    depends_on:
+      - kafka
+
+  piper_solr:
+    image: pjmd-ubuntu:5001/nhs_piper:latest
+    container_name: piper_solr
+    networks:
+      - webnet
+    depends_on:
+      -  kafka
+    command:
+      - solr
+
+
+networks:
+  webnet:
+
