@@ -235,6 +235,7 @@ services:
       - kafka    
 # next entries for testing only
     environment:
+      BULK_SEND: 'yes'
       FILES_STORE: /app/nhs_test_files
     entrypoint: /app/docker_send_test_files.sh
 
@@ -271,6 +272,7 @@ services:
       -  kafka
     command:
       - solr
+      - solr1
 
 
 networks:
