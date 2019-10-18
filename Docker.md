@@ -157,7 +157,9 @@ openssl rsa -in domain.key -out domain.key
 openssl req -new -days 365 -key domain.key -out domain.csr
 ```
 * create the cert
+```
 openssl x509 -in domain.csr -out domain.crt  -req -signkey domain.key -days 365
+```
 * move one folder up and start the registry container 
 ```
 cd ..
