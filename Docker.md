@@ -148,7 +148,7 @@ In a certs folder
 ```
 openssl genrsa -aes128 -out domain.key 2048
 ```
-* for convinience remove passphrase from key
+* for convenience remove passphrase from key
 ```
 openssl rsa -in domain.key -out domain.key
 ```
