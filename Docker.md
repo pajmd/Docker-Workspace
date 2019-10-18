@@ -125,7 +125,7 @@ sudo service docker restart
 ```
 
 ```
-$ docker run -d -p 5000:5000 --restart=always --name registry registry:2
+$ docker run -d -p 5001:5000 --restart=always --name registry registry:2
 ```
   * Tag the local image with a repo on the registry: 
     * To the Docker public registry: docker tag image username/repository:tag
@@ -133,6 +133,50 @@ $ docker run -d -p 5000:5000 --restart=always --name registry registry:2
   * Publish the image 
     * to docker registry: docker push username/repository:tag
     * to local hosted reggistry: docker push localhost:5000/my-ubuntu
+
+#### Setting up a local registry with self signed cert
+
+On the local add a domain name for the local host. It is import the domain name containd a dot  
+```
+vi /etc/hosts add
+192.168.1.24 pjmd-ubuntu16.com
+```
+
+In a certs folder  
+
+* create private key
+```
+openssl genrsa -aes128 -out domain.key 2048
+```
+* for convinience remove passphrase from key
+```
+openssl rsa -in domain.key -out domain.key
+```
+* create a request, it is important FQDN looks like domain.com for docker to connect to the local registry otherwise it will connect to docker.io
+```
+openssl req -new -days 365 -key domain.key -out domain.csr
+```
+* create the cert
+openssl x509 -in domain.csr -out domain.crt  -req -signkey domain.key -days 365
+* move one folder up and start the registry container 
+```
+cd ..
+docker run -d   --restart=always   --name registry   -v "$(pwd)"/certs:/certs   -e REGISTRY_HTTP_ADDR=0.0.0.0:443   -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt   -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key   -p 443:443   registry:2
+```
+* Since the certificate was not signed by a CA we need to put it in:
+```
+mv certs/domaint.crt /etc/docker/certs.d/pjmd-ubuntu16.com/domain.crt
+```
+* create a new tag and push it
+```
+docker tag hello-world:latest pjmd-ubuntu16.com/hello-docker
+docker push pjmd-ubuntu16.com/hello-docker
+```
+* to list the repo
+```
+curl --insecure -X GET https://pjmd-ubuntu16.com/v2/_catalog
+curl --insecure -X GET https://pjmd-ubuntu16.com/v2/hello-docker/tags/list
+```
 
 ##### Commands using local registry
   * docker login registry.example.com:
