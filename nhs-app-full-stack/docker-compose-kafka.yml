@@ -262,6 +262,11 @@ services:
       - webnet
     depends_on:
       - kafka
+    # for multiple db host: - host1:port1,host2:port2,host3:port3
+    command:
+      - mongo
+      - mongo_db
+      - nhsReplicaName
 
   piper_solr:
     image: pjmd-ubuntu:5001/nhs_piper:latest
