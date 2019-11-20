@@ -263,10 +263,18 @@ services:
     depends_on:
       - kafka
     # for multiple db host: - host1:port1,host2:port2,host3:port3
+    environment:
+			MONGO_HOST: mongo_db:27017
+			MONGO_REPLICASET: nhsReplicaName
+			SOLR_HOST: solr1
+			KAFKA_HOST: kafka
+			ATTEMPT_NUM: 32
+			DELAY: 5
+			ZOOKEEPER_HOST: zoo1
+			ZOOKEEPER_PORT: 2181
+
     command:
       - mongo
-      - mongo_db
-      - nhsReplicaName
 
   piper_solr:
     image: pjmd-ubuntu:5001/nhs_piper:latest
@@ -275,9 +283,18 @@ services:
       - webnet
     depends_on:
       -  kafka
+    environment:
+      MONGO_HOST: mongo_db:27017
+      MONGO_REPLICASET: nhsReplicaName
+      SOLR_HOST: solr1
+      KAFKA_HOST: kafka
+      ATTEMPT_NUM: 32
+      DELAY: 5
+      ZOOKEEPER_HOST: zoo1
+      ZOOKEEPER_PORT: 2181
+
     command:
       - solr
-      - solr1
 
 
 networks:
